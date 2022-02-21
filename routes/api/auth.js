@@ -5,14 +5,24 @@ const jwttoken = require("jsonwebtoken");
 const config = require("config");
 const { check, validationResult } = require("express-validator");
 const User = require("../../models/User");
+const auth = require("../../middleware/auth");
 
 //@route    GET api/auth
 //@desc     test route
-//@access   public
-router.get("/", (req, res) => res.send("Hey auth"));
+//@access   private
+router.get("/", auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password");
+    console.log(req.user.id);
+    res.json(user);
+  } catch (err) {
+    console.log(err.message);
+    res.status(500).send("server error");
+  }
+});
 
 //@route    POST api/auth
-//@desc     test route
+//@desc     User sign in
 //@access   public
 router.post(
   "/",
