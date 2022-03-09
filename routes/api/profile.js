@@ -11,7 +11,7 @@ const normalize = require("normalize-url");
 //@access   private
 router.get("/me", auth, async (req, res) => {
   try {
-    const profile = await Profile.findOne({ user: req.body.id }).populate(
+    const profile = await Profile.findOne({ user: req.user.id }).populate(
       "user",
       ["name", "avatar"]
     );
@@ -64,7 +64,7 @@ router.post(
     };
     try {
       let profile = await Profile.findOneAndUpdate(
-        { user: req.body.id },
+        { user: req.user.id },
         { $set: profileFields },
         { new: true, upsert: true, setDefaultsOnInsert: true }
       );
@@ -75,4 +75,51 @@ router.post(
     }
   }
 );
+
+// @route    GET api/profile
+// @desc     get all profiles
+// @access   Public
+router.get('/', async (req, res)=>{
+  try {
+const profiles = await Profile.find().populate('user', ["name", "avatar"]);
+res.json(profiles);
+  } catch (error) {
+   console.log(error.message);
+   res.status(500).send('Server error')
+  }
+})
+// @route    GET api/profile/users/:user_id
+// @desc     Get user by id
+// @access   Public
+router.get('/user/:user_id', async (req, res)=>{
+  try {
+const profile = await Profile.findOne({user: req.params.user_id}).populate('user', ["name", "avatar"]);
+if(!profile){
+  return res.status(400).send('Profile not found')
+}
+res.json(profile);
+  } catch (error) {
+   console.log(error.message);
+   if(error.kind=="ObjectId") return res.status(400).send('Profile not found');
+   res.status(500).send('Server error');
+  }
+})
+
+// @route    DELETE api/profile
+// @desc     delete profie and user
+// @access   private
+router.delete('/', auth, async (req, res)=>{
+  try {
+  await Profile.findOneAndDelete({user: req.user.id});
+  await User.findOneAndDelete({_id: req.user.id})
+  res.json({msg:"Profile removed"});
+  } catch (error) {
+   console.log(error.message);
+    res.status(500).send('Server error');
+  }
+})
+ 
+
+
 module.exports = router;
+
